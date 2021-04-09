@@ -15,12 +15,14 @@ public extension StravaManager {
         var manager = StravaManager()
 
         manager.connectionStatus = { id in
-            return dependencies[id]?.connectionStatus ?? .disconnected
+            return dependencies[id]?.connectionStatus ?? .unknown
         }
         
         manager.create = { id, configuration, _ in
             Effect.run { subscriber in
-                dependencies[id] = Dependencies(stravaClient: StravaClient.sharedInstance.initWithConfig(configuration),
+                dependencies[id] = Dependencies(
+                    connectionStatus: ConnectionStatus(rawValue: UserDefaults.standard.integer(forKey: "\(StravaManager.self)_status_key")) ?? .unknown,
+                    stravaClient: StravaClient.sharedInstance.initWithConfig(configuration),
                                                 subscriber: subscriber)
                 return AnyCancellable {
                     dependencies[id] = nil
@@ -30,6 +32,8 @@ public extension StravaManager {
 
         manager.destroy = { id in
             .fireAndForget {
+                let statusKey = dependencies[id]?.connectionStatus ?? .unknown
+                UserDefaults.standard.set(statusKey.rawValue, forKey: "\(StravaManager.self)_status_key")
                 dependencies[id] = nil
             }
         }
@@ -39,6 +43,7 @@ public extension StravaManager {
                 dependencies[id]?.stravaClient.authorize(result: { result in
                     switch result {
                     case let .success(accessToken):
+                        dependencies[id]?.connectionStatus = .connected
                         dependencies[id]?.subscriber.send(.accessToken(accessToken))
                     case let .failure(error):
                         dependencies[id]?.subscriber.send(.error(Error(error)))
@@ -58,6 +63,7 @@ public extension StravaManager {
                 dependencies[id]?.stravaClient.refreshAccessToken(refreshToken, result: { result in
                     switch result {
                     case let .success(accessToken):
+                        dependencies[id]?.connectionStatus = .connected
                         dependencies[id]?.subscriber.send(.accessToken(accessToken))
                     case let .failure(error):
                         dependencies[id]?.subscriber.send(.error(Error(error)))
@@ -94,7 +100,7 @@ public extension StravaManager {
 }
 
 private struct Dependencies {
-    var connectionStatus: ConnectionStatus = .disconnected
+    var connectionStatus: ConnectionStatus
     var stravaClient: StravaClient
     let subscriber: Effect<StravaManager.Action, Never>.Subscriber
 }
