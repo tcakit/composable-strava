@@ -11,7 +11,7 @@ import ComposableArchitecture
 
 public struct StravaManager {
     public enum Action: Equatable {
-        case accessToken(OAuthToken)
+        case oAuthToken(OAuthToken)
         case athlete(Athlete?)
         case error(Error?)
         case uploadComplete(Result<UploadData.Status?, Error>)
@@ -27,7 +27,6 @@ public struct StravaManager {
     
     public var connectionStatus: (AnyHashable) -> ConnectionStatus = { _ in _unimplemented("connectionStatus") }
 
-    
     var create: (AnyHashable, StravaConfig, String?) -> Effect<Action, Never> = { _, _, _ in _unimplemented("create") }
     var destroy: (AnyHashable) -> Effect<Never, Never> = { _ in _unimplemented("destroy") }
     var authorize: (AnyHashable) -> Effect<Never, Never> = { _ in _unimplemented("authorize") }

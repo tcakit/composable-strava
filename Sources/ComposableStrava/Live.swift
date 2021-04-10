@@ -14,14 +14,21 @@ public extension StravaManager {
     static let live: StravaManager = { () -> StravaManager in
         var manager = StravaManager()
 
-        manager.connectionStatus = { id in
-            return dependencies[id]?.connectionStatus ?? .unknown
-        }
+        manager.connectionStatus = { id in return dependencies[id]?.connectionStatus ?? .unknown }
         
-        manager.create = { id, configuration, _ in
+        manager.create = { id, configuration, accessToken in
             Effect.run { subscriber in
+                let connectionStatus: ConnectionStatus
+                switch accessToken {
+                case let .some(accessToken):
+                    connectionStatus = .connected
+                    UserDefaults.standard.set(connectionStatus.rawValue, forKey: "\(StravaManager.self)_status_key")
+                case .none:
+                    connectionStatus = ConnectionStatus(rawValue: UserDefaults.standard.integer(forKey: "\(StravaManager.self)_status_key")) ?? .unknown
+                }
+                
                 dependencies[id] = Dependencies(
-                    connectionStatus: ConnectionStatus(rawValue: UserDefaults.standard.integer(forKey: "\(StravaManager.self)_status_key")) ?? .unknown,
+                    connectionStatus: connectionStatus,
                     stravaClient: StravaClient.sharedInstance.initWithConfig(configuration),
                                                 subscriber: subscriber)
                 return AnyCancellable {
@@ -42,9 +49,9 @@ public extension StravaManager {
             .fireAndForget {
                 dependencies[id]?.stravaClient.authorize(result: { result in
                     switch result {
-                    case let .success(accessToken):
+                    case let .success(oAuthToken):
                         dependencies[id]?.connectionStatus = .connected
-                        dependencies[id]?.subscriber.send(.accessToken(accessToken))
+                        dependencies[id]?.subscriber.send(.oAuthToken(oAuthToken))
                     case let .failure(error):
                         dependencies[id]?.subscriber.send(.error(Error(error)))
                     }
@@ -62,9 +69,9 @@ public extension StravaManager {
             .fireAndForget {
                 dependencies[id]?.stravaClient.refreshAccessToken(refreshToken, result: { result in
                     switch result {
-                    case let .success(accessToken):
+                    case let .success(oAuthToken):
                         dependencies[id]?.connectionStatus = .connected
-                        dependencies[id]?.subscriber.send(.accessToken(accessToken))
+                        dependencies[id]?.subscriber.send(.oAuthToken(oAuthToken))
                     case let .failure(error):
                         dependencies[id]?.subscriber.send(.error(Error(error)))
                     }
@@ -92,8 +99,6 @@ public extension StravaManager {
                 }
             }
         }
-        
-        
 
         return manager
     }()
