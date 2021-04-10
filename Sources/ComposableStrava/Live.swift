@@ -79,7 +79,7 @@ public extension StravaManager {
             }
         }
 
-        manager.request = { id, athlete in
+        manager.requestAthlete = { id in
             .fireAndForget {
                 dependencies[id]?.stravaClient.request(Router.athlete) { athlete in
                     dependencies[id]?.subscriber.send(.athlete(athlete))

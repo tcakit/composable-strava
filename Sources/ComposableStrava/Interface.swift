@@ -33,7 +33,7 @@ public struct StravaManager {
     var handleAuthorization: (AnyHashable, URL) -> Effect<Never, Never> = { _, _ in _unimplemented("handleAuthorization") }
     var refreshAccessToken: (AnyHashable, String) -> Effect<Never, Never> = { _, _ in _unimplemented("refreshAccessToken") }
     var handleAuthorizationRedirect: (AnyHashable, URL) -> Effect<Never, Never> = { _, _ in _unimplemented("handleAuthorizationRedirect") }
-    var request: (AnyHashable, Athlete) -> Effect<Never, Never> = { _, _ in _unimplemented("request") }
+    var requestAthlete: (AnyHashable) -> Effect<Never, Never> = { _ in _unimplemented("request") }
     var upload: (AnyHashable, UploadData) -> Effect<Never, Never> = { _, _ in _unimplemented("upload") }
     
     public func create(id: AnyHashable, configuration: StravaConfig, accessToken: String?) -> Effect<Action, Never> {
@@ -60,8 +60,8 @@ public struct StravaManager {
         handleAuthorizationRedirect(id, url)
     }
 
-    public func request(id: AnyHashable, athlete: Athlete) -> Effect<Never, Never> {
-        request(id, athlete)
+    public func requestAthlete(id: AnyHashable) -> Effect<Never, Never> {
+        requestAthlete(id)
     }
     
     public func upload(id: AnyHashable, uploadData: UploadData) -> Effect<Never, Never> {
